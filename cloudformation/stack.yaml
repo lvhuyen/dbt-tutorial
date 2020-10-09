@@ -1,0 +1,165 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Mappings:
+  AWSRegionArch2AMI:
+    us-east-1:
+      HVM64: ami-6869aa05
+    us-west-2:
+      HVM64: ami-7172b611
+    us-west-1:
+      HVM64: ami-31490d51
+    eu-west-1:
+      HVM64: ami-f9dd458a
+    eu-west-2:
+      HVM64: ami-886369ec
+    eu-central-1:
+      HVM64: ami-ea26ce85
+    ap-northeast-1:
+      HVM64: ami-374db956
+    ap-northeast-2:
+      HVM64: ami-2b408b45
+    ap-southeast-1:
+      HVM64: ami-a59b49c6
+    ap-southeast-2:
+      HVM64: ami-0f96495a064477ffb
+    ap-south-1:
+      HVM64: ami-ffbdd790
+    us-east-2:
+      HVM64: ami-f6035893
+    ca-central-1:
+      HVM64: ami-730ebd17
+    sa-east-1:
+      HVM64: ami-6dd04501
+    cn-north-1:
+      HVM64: ami-8e6aa0e3
+
+Parameters:
+  EMRInstanceType:
+    Type: String
+    Default: 'm4.large'
+  Ec2InstanceType:
+    Type: String
+    Default: 't2.micro'
+  ReleaseLabel:
+    Type: String
+    Default: 'emr-6.1.0'
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+  emrEc2InstanceProfile:
+    Type: String
+    Default: 'EMR_EC2_DefaultRole'
+  emrRole:
+    Type: String
+    Default: 'EMR_DefaultRole'
+  emrLogUri:
+    Type: String
+    Default: 's3://bc-mel-demo/emr_logs/'
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: Must be the name of an existing EC2 KeyPair.
+  EmrManagedMasterSecurityGroup:
+    Type: String
+    Default: 'ElasticMapReduce-master'
+  EmrManagedSlaveSecurityGroup:
+    Type: String
+    Default: 'ElasticMapReduce-slave'
+  FQDName:
+    Description: Specify a fully qualified domain name that ends with a period as the last label indication. If you omit the final period, Route 53 adds it.
+    Type: String
+    Default: 'sparksql-emr.dna.australia.build'
+  HostedZoneId:
+    Description: Take ZoneId as well in input, because we may allow same ZoneName one for public other for private
+    Type: AWS::Route53::HostedZone::Id
+
+Resources:
+  EMRCluster:
+    Type: AWS::EMR::Cluster
+    Properties:
+      Name: "SparkSQL"
+      JobFlowRole: !Ref 'emrEc2InstanceProfile'
+      ServiceRole: !Ref 'emrRole'
+      ReleaseLabel: emr-6.1.0
+      LogUri: !Ref 'emrLogUri'
+      Applications: [{"Name": "Spark"}]
+      Instances:
+        MasterInstanceGroup:
+          InstanceCount: 1
+          InstanceType: !Ref 'EMRInstanceType'
+          Name: cfnMaster
+        CoreInstanceGroup:
+          InstanceCount: 1
+          InstanceType: !Ref 'EMRInstanceType'
+          Name: cfnCore
+        Ec2KeyName: !Ref 'KeyName'
+      Configurations: [
+        {
+          "Classification": "spark-hive-site",
+          "ConfigurationProperties": {
+            "hive.metastore.client.factory.class": "com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory"
+          }
+        }
+      ]
+      VisibleToAllUsers: true
+      Steps:
+        - Name: "Start Thrift Server"
+          ActionOnFailure: "CANCEL_AND_WAIT"
+          HadoopJarStep:
+            Jar: "command-runner.jar"
+            Args:
+              - "sudo"
+              - "/usr/lib/spark/sbin/start-thriftserver.sh"
+      Tags:
+        - Key: Name
+          Value: SparkSQL
+  DnsRecordCName:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      Name: !Ref 'FQDName'
+      HostedZoneId: !Ref 'HostedZoneId'
+      Comment: DNS name
+      Type: CNAME
+      TTL: '60'
+      ResourceRecords:
+        - !GetAtt 'EMRCluster.MasterPublicDNS'
+  EC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !FindInMap [ AWSRegionArch2AMI, !Ref 'AWS::Region' , 'HVM64' ]
+      KeyName: !Ref KeyName
+      InstanceType: !Ref 'Ec2InstanceType'
+      SecurityGroups:
+        - !Ref 'EmrManagedMasterSecurityGroup'
+      Tags:
+        - Key: Name
+          Value: DBT_demo
+      UserData:
+        Fn::Base64:
+          !Sub |
+          #!/bin/bash -xe
+
+          yum update -y
+          yum install -y redhat-rpm-config gcc git python3 libffi-devel openssl-devel
+          yum install -y gcc-c++ cyrus-sasl-devel python3-devel
+
+          pip3 install virtualenv
+
+          USERNAME=ec2-user
+
+          VIRTUAL_ENV=/home/$USERNAME/venvs/dbt
+          python3 -m virtualenv $VIRTUAL_ENV
+          PATH="$VIRTUAL_ENV/bin:$PATH"
+
+          pip install dbt dbt-spark
+
+          su $USERNAME -c "cd /home/$USERNAME;
+                           git clone https://github.com/lvhuyen/dbt-tutorial.git;
+                           mkdir .dbt;
+                           cp dbt-tutorial/dbt/profiles.yml .dbt/ ;
+                           sed -i 's/SPARK_THRIFT_SERVER_FQDN/${FQDName}/g' .dbt/profiles.yml "
+
+Outputs:
+  EMRMasterDNS:
+    Description: EMR Master DNS
+    Value: !GetAtt 'EMRCluster.MasterPublicDNS'
+  Ec2PublicIp:
+    Description: Public IP of the DBT EC2 instance
+    Value: !GetAtt 'EC2Instance.PublicIp'

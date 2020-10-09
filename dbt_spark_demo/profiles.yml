@@ -1,0 +1,21 @@
+emr_spark_in:
+  target: dev
+  outputs:
+    dev:
+      type: spark
+      method: thrift
+      schema: cloudtrail_raw
+      host: dbt_demo.dna.melbourne.build
+      port: 10001
+      user: hadoop
+
+emr_spark_out:
+  target: dev
+  outputs:
+    dev:
+      type: spark
+      method: thrift
+      schema: dbt_demo_output
+      host: SPARK_THRIFT_SERVER_FQDN
+      port: 10001
+      user: hadoop
