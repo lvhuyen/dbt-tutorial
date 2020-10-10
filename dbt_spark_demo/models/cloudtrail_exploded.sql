@@ -2,7 +2,11 @@
     Exploded the raw CloudTrail Event table
 */
 
-{{ config(materialized='table', file_format='parquet', partition_by='region,dt') }}
+{{ config(
+    materialized='incremental',
+    file_format='parquet',
+    partition_by='region,dt',
+    unique_key='eventId') }}
 
 with exploded_view as (
     select explode(records) as arr, region, dt
@@ -21,7 +25,11 @@ compact_view as (
         arr.responseElements,
         region,
         dt
-     from exploded_view
+    from exploded_view
+
+{% if is_incremental() %}
+    where dt >= (select max(dt) from {{ this }})
+{% endif %}
 )
 
 select *

@@ -153,7 +153,7 @@ Resources:
           su $USERNAME -c "cd /home/$USERNAME;
                            git clone https://github.com/lvhuyen/dbt-tutorial.git;
                            mkdir .dbt;
-                           cp dbt-tutorial/dbt/profiles.yml .dbt/ ;
+                           cp dbt-tutorial/dbt_spark_demo/profiles.yml .dbt/ ;
                            sed -i 's/SPARK_THRIFT_SERVER_FQDN/${FQDName}/g' .dbt/profiles.yml "
 
 Outputs:
