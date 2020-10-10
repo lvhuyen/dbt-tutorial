@@ -58,7 +58,6 @@ CREATE EXTERNAL TABLE cloudtrail_raw.cloudtrail_event (
 PARTITIONED BY (`region` string, `dt` string)
 ROW FORMAT SERDE 'org.openx.data.jsonserde.JsonSerDe'
 WITH SERDEPROPERTIES ('ignore.malformed.json' = 'true')
---WITH SERDEPROPERTIES ('case.insensitive'='false')
 STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
 OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
 LOCATION 's3://slalommelbtrail/AWSLogs/747843067444/CloudTrail/'

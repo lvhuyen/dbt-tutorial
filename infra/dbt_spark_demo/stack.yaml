@@ -36,6 +36,9 @@ Parameters:
   EMRInstanceType:
     Type: String
     Default: 'm4.large'
+  EmrCoreInstanceCount:
+    Type: String
+    Default: 1
   Ec2InstanceType:
     Type: String
     Default: 't2.micro'
@@ -140,16 +143,9 @@ Resources:
           yum install -y redhat-rpm-config gcc git python3 libffi-devel openssl-devel
           yum install -y gcc-c++ cyrus-sasl-devel python3-devel
 
-          pip3 install virtualenv
+          pip3 install dbt dbt-spark
 
           USERNAME=ec2-user
-
-          VIRTUAL_ENV=/home/$USERNAME/venvs/dbt
-          python3 -m virtualenv $VIRTUAL_ENV
-          PATH="$VIRTUAL_ENV/bin:$PATH"
-
-          pip install dbt dbt-spark
-
           su $USERNAME -c "cd /home/$USERNAME;
                            git clone https://github.com/lvhuyen/dbt-tutorial.git;
                            mkdir .dbt;

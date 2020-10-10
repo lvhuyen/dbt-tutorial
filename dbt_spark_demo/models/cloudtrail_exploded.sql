@@ -14,6 +14,8 @@ with exploded_view as (
 ),
 compact_view as (
     select
+        arr.errorCode,
+        arr.errorMessage,
         arr.eventName,
         arr.eventId,
         arr.eventSource,
@@ -30,7 +32,6 @@ compact_view as (
 {% if is_incremental() %}
     where dt >= (select max(dt) from {{ this }})
 {% endif %}
-)
 
-select *
-  from compact_view
+)
+select /*+ REPARTITION(4) */ * from compact_view
