@@ -10,8 +10,9 @@ select /*+ REPARTITION(1) */
     count(eventSource) as cnt
 from {{ ref('cloudtrail_exploded') }}
 
+where errorCode is not null
 {% if is_incremental() %}
-where dt >= (select max(dt) from {{ this }})
+and dt >= (select max(dt) from {{ this }})
 {% endif %}
 
 group by dt, principalId

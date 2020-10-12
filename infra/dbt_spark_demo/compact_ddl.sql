@@ -60,7 +60,7 @@ ROW FORMAT SERDE 'org.openx.data.jsonserde.JsonSerDe'
 WITH SERDEPROPERTIES ('ignore.malformed.json' = 'true')
 STORED AS INPUTFORMAT 'org.apache.hadoop.mapred.TextInputFormat'
 OUTPUTFORMAT 'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-LOCATION 's3://slalommelbtrail/AWSLogs/747843067444/CloudTrail/'
+LOCATION 's3://my-cloudtrail-log-bucket/AWSLogs/123456789012/CloudTrail/'
 
--- ALTER TABLE cloudtrail_raw.cloudtrail_event add partition (region='ap-southeast-2', dt='2020-10-08')
--- location 's3://slalommelbtrail/AWSLogs/747843067444/CloudTrail/ap-southeast-2/2020/10/08'
+-- ALTER TABLE cloudtrail add partition (region='ap-southeast-2', dt='2020-10-08')
+-- location 's3://my-cloudtrail-log-bucket/AWSLogs/123456789012/CloudTrail/ap-southeast-2/2020/10/08'
