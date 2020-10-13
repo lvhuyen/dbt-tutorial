@@ -4,7 +4,7 @@
     partition_by='dt',
     unique_key='principalId') }}
 
-select /*+ REPARTITION(1) */
+select /*+ COALESCE(1) */
     dt,
     principalId,
     count(eventSource) as cnt

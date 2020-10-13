@@ -34,4 +34,4 @@ compact_view as (
 {% endif %}
 
 )
-select /*+ REPARTITION(4) */ * from compact_view
+select /*+ COALESCE(4) */ * from compact_view

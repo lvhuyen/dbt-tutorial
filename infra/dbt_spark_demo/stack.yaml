@@ -125,6 +125,7 @@ Resources:
         - !GetAtt 'EMRCluster.MasterPublicDNS'
   EC2Instance:
     Type: AWS::EC2::Instance
+    DependsOn: DnsRecordCName
     Properties:
       ImageId: !FindInMap [ AWSRegionArch2AMI, !Ref 'AWS::Region' , 'HVM64' ]
       KeyName: !Ref KeyName
